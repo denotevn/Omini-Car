@@ -22,13 +22,13 @@
 
 Для решения задачи доступны два read-only docker-образа:
 
-- [base] `registry.gitlab.com/beerlab/iprofi2024/problem/master/base-user:latest` -- включает все зависимости.
+- [base] `registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/base-user:latest` -- включает все зависимости.
 
-- [scene] `registry.gitlab.com/beerlab/iprofi2024/problem/master/scene:latest` -- собран на базе предыдущего и дополнительно включает файлы сцены в gazebo.
+- [scene] `registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/scene:latest` -- собран на базе предыдущего и дополнительно включает файлы сцены в gazebo.
 
 Запуск включает два шага:
-- В контейнере сервиса `scene` на основе образа `[scene]` запускается сцена в симуляторе gazebo [scene_master](https://gitlab.com/beerlab/iprofi2024_dev/problem/master_scene).
-- В контейнере сервиса `problem` на основе образа `[base]` запускается решение [solution_master](https://gitlab.com/beerlab/iprofi2024/problem/master).
+- В контейнере сервиса `scene` на основе образа `[scene]` запускается сцена в симуляторе gazebo [scene_bachelor](https://gitlab.com/beerlab/iprofi2024_dev/problem/bachelor_scene).
+- В контейнере сервиса `problem` на основе образа `[base]` запускается решение [solution_bachelor](https://gitlab.com/beerlab/iprofi2024/problem/bachelor).
 
 Для автоматизации запуска запуска docker-контейнеров используется инструмент docker compose. Описание параметров запуска доступно в: `docker-compose.yml` и `docker-compose.nvidia.yml`.
 
@@ -61,7 +61,7 @@
 
 ```bash
 git clone <ССЫЛКА НА ФОРК ИЛИ ИМПОРТ РЕПОЗИТОРИЙ РЕШЕНИЯ >
-cd master
+cd bachelor
 ```
 
 Дать права для подключения группе docker к дисплею хоста:
