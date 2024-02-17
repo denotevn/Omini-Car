@@ -121,7 +121,7 @@ docker compose -f docker-compose.yml up --build --pull always
 ## Отправка на тестирование
 При отправке на тестирование убедитесь, что ваше решение не создает графических окон при установлении параметра `GUI=false` в `docker-compose.yml` или `docker-compose.nvidia.yml`, для этого при разработке программы, вы можете использовать переменную окружения `GUI` с помощью: 
 ```c++
-std::string gui = std::getenv('GUI');
+std::string gui = std::getenv("GUI");
 ```
 или для _Python3_:
 ```python3
