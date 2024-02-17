@@ -57,7 +57,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /etc/localtime:/etc/localtime:ro
       - /dev:/dev
-      - ./:/ros_ws/src/solution_bachelor
+      - ./:/ros_ws/src/bachelor
   
   referee:
     image: registry.gitlab.com/beerlab/iprofi2024_dev/problem/local_referee:latest
