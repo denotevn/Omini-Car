@@ -1,5 +1,5 @@
-# Задания полуфинала олимпиады "Я - профессионал" 2022-2023 по робототехнике - Магистратура
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/iprofirobots) [![Yandex IProfi](https://img.shields.io/badge/yandex-%23FF0000.svg?&style=for-the-badge&logo=yandex&logoColor=white)](https://yandex.ru/profi/profile/?page=contests) [![Mail](https://custom-icon-badges.demolab.com/badge/-iprofi.robotics@yandex.ru-red?style=for-the-badge&logo=mention&logoColor=white)](mailto:iprofi.robotics@yandex.ru)
+# Задания полуфинала олимпиады "Я - профессионал" 2023-2024 по робототехнике - Бакалавриат
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/iprofirobots) [![Yandex IProfi](https://img.shields.io/badge/yandex-%23FF0000.svg?&style=for-the-badge&logo=yandex&logoColor=white)](https://yandex.ru/profi/second_stage) [![Mail](https://custom-icon-badges.demolab.com/badge/-iprofi.robotics@yandex.ru-red?style=for-the-badge&logo=mention&logoColor=white)](mailto:iprofi.robotics@yandex.ru)
 
 
 ![scene pic](docs/figures/scene_view.png)
@@ -22,24 +22,24 @@
 
 Для решения задачи доступны два read-only docker-образа:
 
-- [base] `registry.gitlab.com/beerlab/iprofi2024/problem/master_problem_2024/base:ubuntu-latest` -- включает все зависимости.
+- [base] `registry.gitlab.com/beerlab/iprofi2024/problem/master/base-user:latest` -- включает все зависимости.
 
-- [scene] `registry.gitlab.com/beerlab/iprofi2024/problem/master_problem_2024/scene:ubuntu-latest` -- собран на базе предыдущего и дополнительно включает файлы сцены в gazebo.
+- [scene] `registry.gitlab.com/beerlab/iprofi2024/problem/master/scene:latest` -- собран на базе предыдущего и дополнительно включает файлы сцены в gazebo.
 
 Запуск включает два шага:
-- В контейнере сервиса `scene` на основе образа `[scene]` запускается сцена в симуляторе gazebo [master_problem_scene](https://gitlab.com/beerlab/iprofi2024_dev/problem/master_scene).
-- В контейнере сервиса `problem` на основе образа `[base]` запускается решение [master_problem_2024](https://gitlab.com/beerlab/iprofi2024/problem/master_problem_2024).
+- В контейнере сервиса `scene` на основе образа `[scene]` запускается сцена в симуляторе gazebo [scene_master](https://gitlab.com/beerlab/iprofi2024_dev/problem/master_scene).
+- В контейнере сервиса `problem` на основе образа `[base]` запускается решение [solution_master](https://gitlab.com/beerlab/iprofi2024/problem/master).
 
-Для автоматизации запуска запуска docker-контейнеров используется инструмент docker compose. Описание параметров запуска доступно в: `docker-compose.yml `.
+Для автоматизации запуска запуска docker-контейнеров используется инструмент docker compose. Описание параметров запуска доступно в: `docker-compose.yml` и `docker-compose.nvidia.yml`.
 
-*Note! Если вы используется систему с GPU от Nvidia, доступны версии образов с тегом `nvidia-latest` и `docker-compose.nvidia.yml`x*
+*Note! Если вы используется систему с GPU от Nvidia используйте `docker-compose.nvidia.yml`*
 
 
 ## Установка и настройка окружения
 
 Для настройки окружения необходимо иметь одну из перечисленных операционных систем:
-1. Ubuntu 18.04 и старше
-2. Windows 10 и старше, с установленным WSL (Не рекомендуется).
+1. Ubuntu 16.04 и старше
+2. Windows 10 и старше, с установленным WSL2 (Не рекомендуется).
 
 Для подготовки окружения необходимо сделать следующее:
 1. Установить docker-engine: [Docker Engine](https://docs.docker.com/engine/install/ubuntu/).  
@@ -53,18 +53,18 @@
     newgrp docker
     ```
 
-
 ## Как запустить начальное(базовое решение)
-**Сделать форк репозитория** в корень gitlab своего юзера, **не изменяя имени репозитория**. (делается через web интерфейс gitlab)
+**Сделать форк репозитория**([как сделать форк](https://docs.gitlab.com/ee/user/project/repository/forking_workflow.html)) или **импорт**([как сделать импорт](https://docs.github.com/en/migrations/importing-source-code/using-github-importer/importing-a-repository-with-github-importer)) в случае использования Github.  
+Установить параметр видмости: **Private**.  
 
 Склонировать репозиторий:
 
 ```bash
-git clone https://gitlab.com/<YOUR_NAME>/bachelor.git
-cd bachelor
+git clone <ССЫЛКА НА ФОРК ИЛИ ИМПОРТ РЕПОЗИТОРИЙ РЕШЕНИЯ >
+cd master
 ```
 
-Дать права для подключения пользователю root к дисплею хоста:
+Дать права для подключения группе docker к дисплею хоста:
 
 ```
 xhost +local:docker
@@ -75,11 +75,7 @@ xhost +local:docker
 ```bash
 docker compose -f docker-compose.yml up --build --pull always
 ```
-*Note!* В файле `docker-compose.yml` хранится описание параметров запуска сцены и решения. По умолчанию запускается `example_node`
-
-```bash
-rosrun master_problem_2024 example_node
-```
+*Note!* В файле `docker-compose.yml` и `docker-compose.nvidia.yml` хранится описание параметров запуска сцены и решения.
 
 ### Редактирование базового решения
 Для редактирования доступны все файлы в репозтории, за исключение файлов `docker-compose*.yml`.  
@@ -122,6 +118,15 @@ rosrun master_problem_2024 example_node
 
     docker compose restart scene
 
+## Отправка на тестирование
+При отправке на тестирование убедитесь, что ваше решение не создает графических окон при установлении параметра `GUI=false` в `docker-compose.yml` или `docker-compose.nvidia.yml`, для этого при разработке программы, вы можете использовать переменную окружения `GUI` с помощью: 
+```c++
+std::string gui = std::getenv('GUI');
+```
+или для _Python3_:
+```python3
+gui = os.getenv('GUI')
+```
 
 ## Оценка
 
