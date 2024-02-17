@@ -49,7 +49,7 @@ services:
               capabilities: [gpu]
     depends_on: 
       scene:
-        condition: service_started
+        condition: service_healthy
     networks:
       - general
     ipc: host
