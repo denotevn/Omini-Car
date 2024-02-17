@@ -30,6 +30,7 @@ services:
 
   solution:
     image: registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/base:latest
+    entrypoint: ["/bin/bash", "-ci", "cd /ros_ws && catkin build $(catkin list -u -d /ros_ws/src/bachelor) && source devel/setup.bash && roslaunch solution_bachelor start.launch"]
     container_name: solution_bachelor_semifinal
     stdin_open: true
     tty: true
@@ -48,7 +49,7 @@ services:
               capabilities: [gpu]
     depends_on: 
       scene:
-        condition: service_healthy
+        condition: service_started
     networks:
       - general
     ipc: host

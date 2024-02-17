@@ -8,6 +8,7 @@ services:
     environment:
       - DISPLAY
       - XAUTORITY
+      - QT_X11_NO_MITSHM=1
       - RVIZ_GUI=true
       - GAZEBO_GUI=true
     ipc: host
@@ -22,6 +23,7 @@ services:
 
   solution:
     image: registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/base:latest
+    entrypoint: ["/bin/bash", "-ci", "cd /ros_ws && catkin build $(catkin list -u -d /ros_ws/src/bachelor) && source devel/setup.bash && roslaunch solution_bachelor start.launch"]
     container_name: solution_bachelor_semifinal
     stdin_open: true
     tty: true
@@ -29,10 +31,11 @@ services:
       - ROS_MASTER_URI=http://scene:11311
       - DISPLAY
       - XAUTORITY
+      - QT_X11_NO_MITSHM=1
       - GUI=true
     depends_on: 
       scene:
-        condition: service_healthy
+        condition: service_started
     networks:
       - general
     ipc: host
@@ -41,7 +44,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /dev:/dev
       - ./:/ros_ws/src/solution_bachelor
-
+  
   referee:
     image: registry.gitlab.com/beerlab/iprofi2024_dev/problem/local_referee:latest
     container_name: referee_bachelor_semifinal
