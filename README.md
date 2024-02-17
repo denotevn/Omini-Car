@@ -118,6 +118,10 @@ docker compose -f docker-compose.yml up --build --pull always
 
     docker compose restart scene
 
+###  Включение/выключение Rviz
+
+При необходимости вы можете отключить Rviz, для этого нужно отредактировать файл `docker-compose.yml` или `docker-compose.nvidia.yml`, заменив `RVIZ_GUI=true` на `RVIZ_GUI=false`.
+
 ## Отправка на тестирование
 При отправке на тестирование убедитесь, что ваше решение не создает графических окон при установлении параметра `GUI=false` в `docker-compose.yml` или `docker-compose.nvidia.yml`, для этого при разработке программы, вы можете использовать переменную окружения `GUI` с помощью: 
 ```c++
