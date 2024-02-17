@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-
+import os
 import rospy
 import cv2
 from cv_bridge import CvBridge
 
-
-from geometry_msgs.msg import Pose
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3
 
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import Range
-
 
 class Example(object):
 
@@ -23,10 +21,10 @@ class Example(object):
         self.camera_subscriber = rospy.Subscriber(sub_image_topic_name, Image, self.camera_cb)
 
         self.cmd_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=3)
-        self.odom_subscriber = rospy.Subscriber("/odom", Pose, self.odom_callback)
+        self.odom_subscriber = rospy.Subscriber("/odom", Odometry, self.odom_callback)
         self.range_front_subscriber = rospy.Subscriber("/range/front", Range, self.range_front_callback)
 
-        self.pose = Pose()
+        self.odometry = Odometry()
         self.command = Twist()
 
         self.sonar_data = [0, 0, 0, 0]
@@ -46,17 +44,21 @@ class Example(object):
     def camera_cb(self, msg):
         frame = self.bridge.imgmsg_to_cv2(msg)
         # some processing here
-        cv2.imshow("output", frame)
-        cv2.waitKey(1)
+
+        #display from onbourd camera
+        gui = os.getenv('GUI')
+        if gui != False:
+            cv2.imshow("output", frame)
+            cv2.waitKey(1)
 
     def range_front_callback(self, msg):
         self.sonar_data[0] = msg.range
 
-    def odom_callback(self, msg: Pose):
-        self.pose = msg
-        self.x_pos = msg.position.x
-        self.y_pos = msg.position.y
-        self.z_pos = msg.position.z
+    def odom_callback(self, msg: Odometry):
+        self.odometry = msg
+        self.x_pos = msg.pose.pose.position.x
+        self.y_pos = msg.pose.pose.position.y
+        self.z_pos = msg.pose.pose.position.z
 
     def spin(self):
 
@@ -73,7 +75,7 @@ class Example(object):
             else:
                 self.command.linear.x = -0.1
                 self.command.linear.y = 0.0
-                self.command.angular.z = 1.0
+                self.command.angular.z = 0.4
                 self.cmd_vel.publish(self.command)
                 rospy.sleep(1)
 
