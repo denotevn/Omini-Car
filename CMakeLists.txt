@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(bachelor_solution)
+project(solution_bachelor)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy

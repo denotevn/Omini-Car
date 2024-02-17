@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>bachelor_solution</name>
+  <name>solution_bachelor</name>
   <version>0.0.0</version>
-  <description>The bachelor_solution package</description>
+  <description>The solution_bachelor package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

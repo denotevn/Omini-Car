@@ -1,20 +1,16 @@
 version: '3.9'
-name: 'master_semifinal'
+name: 'bachelor_semifinal'
 
 services:
   scene:
-    image: registry.gitlab.com/beerlab/iprofi2023/problem/master_problem_2023/scene:nvidia-latest
-    container_name: scene_master_semifinal
+    image: registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/scene:latest
+    container_name: scene_bachelor_semifinal
     environment:
       - DISPLAY
       - XAUTORITY
       - QT_X11_NO_MITSHM=1
-      - GUI=true
-    ipc: host
-    stdin_open: true
-    tty: true
-    networks:
-      - general
+      - RVIZ_GUI=true
+      - GAZEBO_GUI=true
     deploy:
       resources:
         reservations:
@@ -22,16 +18,19 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    ipc: host
+    stdin_open: true
+    tty: true
+    networks:
+      - general
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /etc/localtime:/etc/localtime:ro
       - /dev:/dev
 
-
-  problem:
-    image: registry.gitlab.com/beerlab/iprofi2023/problem/master_problem_2023/base:nvidia-latest
-    container_name: problem_master_semifinal
-    entrypoint: ["/bin/bash", "-ci", " export ROS_NAMESPACE=robot && cd /ros_ws && catkin build $(catkin list -u -d /ros_ws/src/master) && source devel/setup.bash && roslaunch master start.launch"]
+  solution:
+    image: registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/base:latest
+    container_name: solution_bachelor_semifinal
     stdin_open: true
     tty: true
     environment:
@@ -40,11 +39,6 @@ services:
       - XAUTORITY
       - QT_X11_NO_MITSHM=1
       - GUI=true
-    depends_on: 
-      scene:
-        condition: service_healthy
-    networks:
-      - general
     deploy:
       resources:
         reservations:
@@ -52,17 +46,22 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    depends_on: 
+      scene:
+        condition: service_healthy
+    networks:
+      - general
     ipc: host
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /etc/localtime:/etc/localtime:ro
       - /dev:/dev
-      - ./:/ros_ws/src/master
-
+      - ./:/ros_ws/src/solution_bachelor
+  
   referee:
-    image: registry.gitlab.com/beerlab/iprofi2023/problem/bachelor_problem_2023/localreferee:ubuntu-latest
+    image: registry.gitlab.com/beerlab/iprofi2024_dev/problem/local_referee:latest
     container_name: referee_bachelor_semifinal
-    entrypoint: ["/bin/bash", "-ci", "roslaunch local_referee start_referee_master.launch"]
+    entrypoint: ["/bin/bash", "-ci", "roslaunch local_referee start_referee_bachelor.launch"]
     stdin_open: true
     tty: true
     environment:
