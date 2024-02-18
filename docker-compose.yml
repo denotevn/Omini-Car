@@ -29,7 +29,7 @@ services:
       - /dev:/dev
 
   solution:
-    image: registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/base:latest
+    image: registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/base-user:latest
     entrypoint: ["/bin/bash", "-ci", "cd /ros_ws && catkin build $(catkin list -u -d /ros_ws/src/bachelor) && source devel/setup.bash && roslaunch solution_bachelor start.launch"]
     container_name: solution_bachelor_semifinal
     stdin_open: true
@@ -60,7 +60,7 @@ services:
       - ./:/ros_ws/src/bachelor
   
   referee:
-    image: registry.gitlab.com/beerlab/iprofi2024_dev/problem/local_referee:latest
+    image: registry.gitlab.com/beerlab/iprofi2024/problem/bachelor/local_referee:latest
     container_name: referee_bachelor_semifinal
     entrypoint: ["/bin/bash", "-ci", "roslaunch local_referee start_referee_bachelor.launch"]
     stdin_open: true
