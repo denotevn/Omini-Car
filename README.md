@@ -83,11 +83,11 @@ docker compose -f docker-compose.yml up --build --pull always
 
 Если вы пишете на python, нужно, чтобы в `start.launch` была раскомментирована строка: 
 
-    <node name="example_node" pkg="master" type="example.py" output="screen"></node>
+    <node name="example_node" pkg="solution_bachelor" type="example.py" output="screen"></node>
 
 Если вы пишете на C++, нужно, чтобы в `start.launch` была раскомментирована строка: 
 
-    <node name="example_node" pkg="master" type="example_node" output="screen"></node>
+    <node name="example_node" pkg="solution_bachelor" type="example_node" output="screen"></node>
 
 ## Дополнительные полезные команды
 
