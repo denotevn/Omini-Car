@@ -17,6 +17,8 @@ class Example(object):
         rospy.loginfo("[Example] loaging")
         rospy.on_shutdown(self.shutdown)
 
+        self.gui = os.getenv('GUI')=='true' or os.getenv('GUI')=='True'
+
         sub_image_topic_name = "/head/camera1/image_raw"
         self.camera_subscriber = rospy.Subscriber(sub_image_topic_name, Image, self.camera_cb)
 
@@ -46,8 +48,7 @@ class Example(object):
         # some processing here
 
         #display from onbourd camera
-        gui = os.getenv('GUI')
-        if gui != False:
+        if self.gui != False:
             cv2.imshow("output", frame)
             cv2.waitKey(1)
 
