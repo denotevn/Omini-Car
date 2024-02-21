@@ -29,7 +29,7 @@ class PID:
 
         self.prev_error = error
 
-        output_control_x = self.kp* error # + self.ki * self.integral + self.kd * self.derivative
+        output_control_x = self.kp* error  # + self.ki * self.integral + self.kd * self.derivative
         if abs(output_control_x) > 2:
             output_control_x  /= (abs(output_control_x))
         

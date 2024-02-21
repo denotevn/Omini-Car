@@ -48,8 +48,8 @@ class Example(object):
         self.bridge = CvBridge()
         self.obj_detection = None
         self.control = None
-        self.kp = 0.35
-        self.pid_controller = PID.PID(self.kp, 0.0002, 0.00012)
+        self.kp = 0.1523
+        self.pid_controller = PID.PID(self.kp, 0.001, 0.15)
         self.center_img = None
         self.rate = rospy.Rate(100) # 100 Hz
 
@@ -124,47 +124,88 @@ class Example(object):
     def spin(self):
         t0 = rospy.get_time()
         # get infor params from images
-    
         while not rospy.is_shutdown():
 
             t = rospy.get_time() - t0
-            # self.command = set_velocities(0.15, 0, 0, 0, 0, 0)
-            # self.cmd_vel.publish(self.command)
+            # khong phat hien thi chay thang
+            if self.isBlue == False and self.isRed == False:
+                if self.sonar_data[0] > 0.7:
+                        self.command = go_straight(0.45)
+                        self.cmd_vel.publish(self.command)
+                if self.sonar_data[0] <= 0.7:
+                    if self.sonar_data[1] > 0.7:
+                        self.command = set_velocities(-0.15, 0.1, 0, 0, 0, 0.5)
+                    elif self.sonar_data[3] > 0.7:
+                        # xoay phai
+                        self.command = set_velocities(-0.15, -0.1, 0, 0, 0, -0.5)
+                    # lui lai
+                    else: 
+                        self.command = set_velocities(-1, 0, 0, 0, 0, 0.2)
+                self.cmd_vel.publish(self.command)
 
-            if self.isBlue == True:
-                print("phat hieen mau xanh")
+            elif self.isBlue == True:
                 if abs(self.error_x) > 3:
                     self.control = self.pid_controller.update(self.error_x, t)
-                    self.command = set_velocities(0.25, 0, 0, 0, 0, -self.control)
+                    self.command = set_velocities(0.32, 0, 0, 0, 0, -self.control)
                     self.cmd_vel.publish(self.command)
-
-                else:
-                    self.control = 0
-                    self.command = set_velocities(0.25, 0, 0, 0, 0, -self.control)
-                    # neu dung huong roi
-                    if self.sonar_data[0] > 0.65:
+                    if self.sonar_data[0] < 0.7:
+                        if self.sonar_data[1] > 0.7:
+                                self.command = set_velocities(-0.12, 0, 0, 0, 0, 0.2)
+                        elif self.sonar_data[3] > 0.7:
+                            # xoay phai
+                            self.command = set_velocities(-0.12, 0, 0, 0, 0, -0.2)
+                        # lui lai
+                        else: 
+                            self.command = set_velocities(-0.5, 0, 0, 0, 0, 0.2)
                         self.cmd_vel.publish(self.command)
-                    elif self.sonar_data[0] <= 0.65:
-                        if self.sonar_data[1] > 0.65:
-                            # quay trai
-                            self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.56)
-                            self.cmd_vel.publish(self.command)
-                            # neu ma oke roi thi di thang
-                            # if self.sonar_data[0] > 0.7:
-                            #     self.command = set_velocities(0.45, 0, 0, 0, 0, 0)
-                            #     self.cmd_vel.publish(self.command)
-                        elif self.sonar_data[3] > 0.65:
-                            # quay phai
-                            self.command = set_velocities(-0.06,0,0,0,0,-0.56)
-                            self.cmd_vel.publish(self.command)
-                            # if self.sonar_data[0] > 0.7:
-                            #     self.command = set_velocities(0.45, 0, 0, 0, 0, 0)
-                            #     self.cmd_vel.publish(self.command)
-            else:
-                print("Khong thay gi")
-                # self.cmd_vel.publish(self.command)
+                else:
+                    if self.sonar_data[0] > 0.7:
+                        self.command = go_straight(0.32)
+                        self.cmd_vel.publish(self.command)
 
-            self.rate.sleep()           
+            elif self.isRed == True:
+                if self.error_x > 100:
+                    if self.sonar_data[0] > 0.7:
+                        self.command = go_straight(0.45)
+                    else:
+                        if self.sonar_data[1] > 0.7:
+                            self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.25)
+                        elif self.sonar_data[3] > 0.7:
+                            # xoay phai
+                            self.command = set_velocities(0, 0, 0, 0, 0, -0.25)
+                        else:
+                            # lui lai
+                            self.command = set_velocities(-0.5, 0, 0, 0, 0, 0.25)
+                            self.cmd_vel.publish(self.command)
+
+
+            self.rate.sleep()
+            # if self.isBlue == True:
+            #     print("phat hieen mau xanh")
+            #     if abs(self.error_x) > 3:
+            #         self.control = self.pid_controller.update(-self.error_x, t)
+            #         self.command = set_velocities(0.4, 0.02, 0, 0, 0, self.control)
+            #         self.cmd_vel.publish(self.command)
+            #     else:
+            #         self.control = 0
+            #         self.command = set_velocities(0.4, 0.02, 0, 0, 0, self.control)
+            #         # neu dung huong roi
+            #         if self.sonar_data[0] > 0.65:
+            #             self.cmd_vel.publish(self.command)
+            #         elif self.sonar_data[0] <= 0.65:
+            #             if self.sonar_data[1] > 0.65:
+            #                 # quay trai
+            #                 self.command = set_velocities(-0.01, 0, 0, 0, 0, 0.56)
+            #                 self.cmd_vel.publish(self.command)
+            #             elif self.sonar_data[3] > 0.65 and self.sonar_data[3] > self.sonar_data[1]:
+            #                 # quay phai
+            #                 self.command = set_velocities(-0.01,0,0,0,0,-0.56)
+            #                 self.cmd_vel.publish(self.command)
+            # else:
+            #     print("Khong thay gi")
+            #     # self.cmd_vel.publish(self.command)
+
+            # self.rate.sleep()           
             
 
 def main(args=None):
