@@ -48,10 +48,14 @@ class Example(object):
         self.bridge = CvBridge()
         self.obj_detection = None
         self.control = None
-        self.kp = 0.1523
+        self.kp = 0.1234
         self.pid_controller = PID.PID(self.kp, 0.001, 0.15)
         self.center_img = None
         self.rate = rospy.Rate(100) # 100 Hz
+        # for wall information
+        self.is_obstacle_left = False
+        self.is_obstacle_right = False
+        self.is_obstacle_front = False
 
         rospy.loginfo("[Example] loaded")
 
@@ -103,12 +107,24 @@ class Example(object):
 
     def range_front_callback(self, msg):
         self.sonar_data[0] = msg.range
+        if msg.range > 0.7:
+            self.is_obstacle_front = False
+        else:
+            self.is_obstacle_front = True
     def range_left_callback(self,msg):
         self.sonar_data[1] = msg.range
+        if msg.range > 0.6:
+            self.is_obstacle_left = False
+        else:
+            self.is_obstacle_left = True 
     def range_rear_callback(self, msg):
         self.sonar_data[2] = msg.range
     def range_right_callback(self, msg):
         self.sonar_data[3] = msg.range
+        if msg.range > 0.6:
+            self.is_obstacle_right = False
+        else:
+            self.is_obstacle_right = True 
 
     def odom_callback(self, msg: Odometry):
         self.odometry = msg
@@ -122,91 +138,64 @@ class Example(object):
     
 
     def spin(self):
+
         t0 = rospy.get_time()
         # get infor params from images
         while not rospy.is_shutdown():
 
             t = rospy.get_time() - t0
+    
             # khong phat hien thi chay thang
             if self.isBlue == False and self.isRed == False:
-                if self.sonar_data[0] > 0.7:
-                        self.command = go_straight(0.45)
-                        self.cmd_vel.publish(self.command)
-                if self.sonar_data[0] <= 0.7:
-                    if self.sonar_data[1] > 0.7:
-                        self.command = set_velocities(-0.15, 0.1, 0, 0, 0, 0.5)
-                    elif self.sonar_data[3] > 0.7:
-                        # xoay phai
-                        self.command = set_velocities(-0.15, -0.1, 0, 0, 0, -0.5)
-                    # lui lai
-                    else: 
-                        self.command = set_velocities(-1, 0, 0, 0, 0, 0.2)
-                self.cmd_vel.publish(self.command)
-
+                if self.is_obstacle_front == False:
+                    self.command = go_straight(0.45)
+                    self.cmd_vel.publish(self.command)
+                else:
+                    if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                    if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
+                    if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                    if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
+                        self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
+                    self.cmd_vel.publish(self.command)
+            # when detect blue
             elif self.isBlue == True:
-                if abs(self.error_x) > 3:
+                if abs(self.error_x) > 5:
                     self.control = self.pid_controller.update(self.error_x, t)
                     self.command = set_velocities(0.32, 0, 0, 0, 0, -self.control)
                     self.cmd_vel.publish(self.command)
-                    if self.sonar_data[0] < 0.7:
-                        if self.sonar_data[1] > 0.7:
-                                self.command = set_velocities(-0.12, 0, 0, 0, 0, 0.2)
-                        elif self.sonar_data[3] > 0.7:
-                            # xoay phai
-                            self.command = set_velocities(-0.12, 0, 0, 0, 0, -0.2)
-                        # lui lai
-                        else: 
-                            self.command = set_velocities(-0.5, 0, 0, 0, 0, 0.2)
-                        self.cmd_vel.publish(self.command)
+                if self.is_obstacle_front == False:
+                    self.command = go_straight(0.45)
+                    self.cmd_vel.publish(self.command)
                 else:
-                    if self.sonar_data[0] > 0.7:
-                        self.command = go_straight(0.32)
-                        self.cmd_vel.publish(self.command)
-
-            elif self.isRed == True:
-                if self.error_x > 100:
-                    if self.sonar_data[0] > 0.7:
-                        self.command = go_straight(0.45)
-                    else:
-                        if self.sonar_data[1] > 0.7:
-                            self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.25)
-                        elif self.sonar_data[3] > 0.7:
-                            # xoay phai
-                            self.command = set_velocities(0, 0, 0, 0, 0, -0.25)
-                        else:
-                            # lui lai
-                            self.command = set_velocities(-0.5, 0, 0, 0, 0, 0.25)
-                            self.cmd_vel.publish(self.command)
+                    if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                    if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
+                    if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                    if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
+                        self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
+                    self.cmd_vel.publish(self.command)
 
 
+            # elif self.isRed == True:
+            #     if self.error_x > 100:
+            #         if self.sonar_data[0] > 0.7:
+            #             self.command = go_straight(0.45)
+            #         else:
+            #             if self.sonar_data[1] > 0.7:
+            #                 self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.25)
+            #             elif self.sonar_data[3] > 0.7:
+            #                 # xoay phai
+            #                 self.command = set_velocities(0, 0, 0, 0, 0, -0.25)
+            #             else:
+            #                 # lui lai
+            #                 self.command = set_velocities(-0.5, 0, 0, 0, 0, 0.25)
+            #                 self.cmd_vel.publish(self.command)
             self.rate.sleep()
-            # if self.isBlue == True:
-            #     print("phat hieen mau xanh")
-            #     if abs(self.error_x) > 3:
-            #         self.control = self.pid_controller.update(-self.error_x, t)
-            #         self.command = set_velocities(0.4, 0.02, 0, 0, 0, self.control)
-            #         self.cmd_vel.publish(self.command)
-            #     else:
-            #         self.control = 0
-            #         self.command = set_velocities(0.4, 0.02, 0, 0, 0, self.control)
-            #         # neu dung huong roi
-            #         if self.sonar_data[0] > 0.65:
-            #             self.cmd_vel.publish(self.command)
-            #         elif self.sonar_data[0] <= 0.65:
-            #             if self.sonar_data[1] > 0.65:
-            #                 # quay trai
-            #                 self.command = set_velocities(-0.01, 0, 0, 0, 0, 0.56)
-            #                 self.cmd_vel.publish(self.command)
-            #             elif self.sonar_data[3] > 0.65 and self.sonar_data[3] > self.sonar_data[1]:
-            #                 # quay phai
-            #                 self.command = set_velocities(-0.01,0,0,0,0,-0.56)
-            #                 self.cmd_vel.publish(self.command)
-            # else:
-            #     print("Khong thay gi")
-            #     # self.cmd_vel.publish(self.command)
-
-            # self.rate.sleep()           
-            
 
 def main(args=None):
     rospy.init_node("example_node")
