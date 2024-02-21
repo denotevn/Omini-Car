@@ -41,21 +41,22 @@ class Example(object):
         self.sonar_data = [0, 0, 0, 0]
 
         self.curent_image = None
-        self.error_x = None
+        self.error_x = None 
         self.error_y = None
         self.isBlue = None
         self.isRed = None
         self.bridge = CvBridge()
         self.obj_detection = None
         self.control = None
-        self.kp = 0.1234
-        self.pid_controller = PID.PID(self.kp, 0.001, 0.15)
+        self.kp = 0.17 # 0.1234
+        self.pid_controller = PID.PID(self.kp, 0.001, 0.005)
         self.center_img = None
-        self.rate = rospy.Rate(100) # 100 Hz
+        self.rate = rospy.Rate(50) # 100 Hz
         # for wall information
         self.is_obstacle_left = False
         self.is_obstacle_right = False
         self.is_obstacle_front = False
+        self.angle_error = None
 
         rospy.loginfo("[Example] loaded")
 
@@ -76,27 +77,21 @@ class Example(object):
         center_red = self.obj_detection[2] 
         
         self.center_img = [frame.shape[1]/2, frame.shape[0]/2]
-        print(f"center img : {self.center_img}")
-        
-        # print(f"Center of image is {self.center_img}")
 
         if len(center_blue) > 0:
             self.isBlue = True
-            x_blue = center_blue[0]
-            y_blue = center_blue[1]
             # print(f"Blue: {self.isBlue}")
             self.error_x = center_blue[0] - self.center_img[0]
             self.error_y = center_blue[1] - self.center_img[1]
+            self.angle_error = (self.error_x*1.57)/720
         else:
             self.isBlue = False
 
         if len(center_red) > 0:
             self.isRed = True
-            # print(f"Red: {self.isRed}")
-            x_red = center_red[0]
-            y_red = center_red[1]
             self.error_x = center_red[0] - self.center_img[0]
             self.error_y = center_red[1] - self.center_img[1]
+            self.angle_error = (self.error_x*1.57)/720
         else:
             self.isRed = False
 
@@ -131,10 +126,7 @@ class Example(object):
         self.x_pos = msg.pose.pose.position.x
         self.y_pos = msg.pose.pose.position.y
         self.z_pos = msg.pose.pose.position.z
-    def bound_control_signal(value):
-        if abs(value) > 0.5:
-            value = value/(abs(value)*2)
-        return value
+
     
 
     def spin(self):
@@ -148,53 +140,91 @@ class Example(object):
             # khong phat hien thi chay thang
             if self.isBlue == False and self.isRed == False:
                 if self.is_obstacle_front == False:
-                    self.command = go_straight(0.45)
-                    self.cmd_vel.publish(self.command)
-                else:
+                    self.command = go_straight(0.47)
+                elif self.is_obstacle_front == False and self.is_obstacle_left == False:
+                    self.command = go_straight(0.47)
+                elif self.is_obstacle_front == False and self.is_obstacle_right == False:
+                    self.command = go_straight(0.47)
+                self.cmd_vel.publish(self.command)
+                if self.is_obstacle_front == True:
                     if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
-                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                        self.command = set_velocities(-0.2, 0.1, 0, 0, 0, 0.27)
                     if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
-                        self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
+                        self.command = set_velocities(-0.2, 0.02, 0, 0, 0, -0.27)
                     if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
-                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                        if self.sonar_data[1] > self.sonar_data[3]: # quay trai vi rang left > renge_right
+                            self.command = set_velocities(-0.2, 0.1, 0, 0, 0, 0.27)
+                        if self.sonar_data[1] < self.sonar_data[3]: # quay phai vi range right > range left
+                            self.command = set_velocities(-0.2, 0.1, 0, 0, 0, -0.34)
+                        else:   # both sides have obstacles
+                            self.command = set_velocities(-0.2, 0, 0, 0, 0, 0.23)
                     if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
                         self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
                     self.cmd_vel.publish(self.command)
+
             # when detect blue
             elif self.isBlue == True:
-                if abs(self.error_x) > 5:
-                    self.control = self.pid_controller.update(self.error_x, t)
-                    self.command = set_velocities(0.32, 0, 0, 0, 0, -self.control)
-                    self.cmd_vel.publish(self.command)
+               
                 if self.is_obstacle_front == False:
-                    self.command = go_straight(0.45)
+                    self.control = self.pid_controller.update(self.angle_error, t)
+                    self.command = set_velocities(0.37, 0, 0, 0, 0, -self.control)
                     self.cmd_vel.publish(self.command)
                 else:
+                    self.command = go_straight(0.57)
+                self.cmd_vel.publish(self.command)
+
+                if self.is_obstacle_front == False and self.is_obstacle_left == False:
+                    self.command = go_straight(0.37)
+                elif self.is_obstacle_front == False and self.is_obstacle_right == False:
+                    self.command = go_straight(0.37)
+                self.cmd_vel.publish(self.command)
+                
+                if self.is_obstacle_front == True:
+                    self.command = set_velocities(-0.4, 0, 0, 0, 0, 0)
+                    self.cmd_vel.publish(self.command)
+                    rospy.sleep(0.02)
                     if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
                         self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
                     if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
                         self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
                     if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
-                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                        if self.sonar_data[1] > self.sonar_data[3]: # quay trai vi rang left > renge_right
+                            self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                        if self.sonar_data[1] < self.sonar_data[3]: # quay phai vi range right > range left
+                            self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
+                        else:   # both sides have obstacles
+                            self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
                     if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
                         self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
                     self.cmd_vel.publish(self.command)
+            elif self.isRed == True:
+                self.command = set_velocities(-1, 0, 0, 0, 0, 0.77)
+                self.cmd_vel.publish(self.command)
+                if self.error_x > 90:
+                        if self.is_obstacle_front == False:
+                             self.command = go_straight(0.47)
+                        elif self.is_obstacle_front == False and self.is_obstacle_left == False:
+                            self.command = go_straight(0.47)
+                        elif self.is_obstacle_front == False and self.is_obstacle_right == False:
+                            self.command = go_straight(0.47)
+                        self.cmd_vel.publish(self.command)
+                    
+                        if self.is_obstacle_front == True:
+                            if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
+                                self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                            if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
+                                self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
+                            if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
+                                if self.sonar_data[1] > self.sonar_data[3]: # quay trai vi rang left > renge_right
+                                    self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                                if self.sonar_data[1] < self.sonar_data[3]: # quay phai vi range right > range left
+                                    self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
+                                else:   # both sides have obstacles
+                                    self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
+                            if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
+                                self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
+                            self.cmd_vel.publish(self.command)
 
-
-            # elif self.isRed == True:
-            #     if self.error_x > 100:
-            #         if self.sonar_data[0] > 0.7:
-            #             self.command = go_straight(0.45)
-            #         else:
-            #             if self.sonar_data[1] > 0.7:
-            #                 self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.25)
-            #             elif self.sonar_data[3] > 0.7:
-            #                 # xoay phai
-            #                 self.command = set_velocities(0, 0, 0, 0, 0, -0.25)
-            #             else:
-            #                 # lui lai
-            #                 self.command = set_velocities(-0.5, 0, 0, 0, 0, 0.25)
-            #                 self.cmd_vel.publish(self.command)
             self.rate.sleep()
 
 def main(args=None):
@@ -206,6 +236,5 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-
 
 
