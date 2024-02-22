@@ -59,13 +59,13 @@ class Example(object):
         self.is_obstacle_right = False
         self.is_obstacle_front = False
         self.angle_error = None
-        self.speed_x = 0.57
+        self.speed_x = 0.5
         self.last_dir_command = None
         self.obstacle_yellow_is_left = None
         self.obstacle_yellow_is_right = None
         self.is_red_left = None
         self.is_red_right = None
-        self.speed_angle_cons = 0.5
+        self.speed_angle_cons = 0.47
 
         rospy.loginfo("[Example] loaded")
 
