@@ -17,11 +17,12 @@ def set_range_red(hsv_img):
     red_mask = cv2.inRange(hsv_img, red_lower, red_upper)
     return red_mask
 
-def set_range_green(hsv_img):
-    green_lower = np.array([40, 40, 40], np.uint8)
-    green_upper = np.array([70, 255, 255], np.uint8)
-    green_mask = cv2.inRange(hsv_img, green_lower, green_upper)
-    return green_mask
+def set_range_yellow(hsv_img):
+    #Yellow Color
+    yellow_lower = np.array([24,107,21]).astype(np.uint8)
+    yellow_upper = np.array([180,255,255]).astype(np.uint8)
+    yellow_mask = cv2.inRange(hsv_img, yellow_lower, yellow_upper)
+    return yellow_mask
 
 def set_range_blue(hsv_img):
     # co the dieu chinh
@@ -39,9 +40,9 @@ def get_contour_by_mask(mask):
 def color_detector(img):
     
     hsv_img = hsv_image(img)
-
     # Set range for red color and define mask
     red_mask = set_range_red(hsv_img)
+    yellow_mask = set_range_yellow(hsv_img)
     blue_mask = set_range_blue(hsv_img)
 
     # Morphological Transform, Dilation  for each color and bitwise_and operator 
@@ -51,7 +52,10 @@ def color_detector(img):
     # for red color
     red_mask = cv2.dilate(red_mask, kernal)
     res_red = cv2.bitwise_and(img, img,mask=red_mask)
-
+    # # For green color
+    yellow_mask = cv2.dilate(yellow_mask, kernal)
+    res_yellow = cv2.bitwise_and(img, img,
+                                mask=yellow_mask)
     # For blue color
     blue_mask = cv2.dilate(blue_mask, kernal)
     res_blue = cv2.bitwise_and(img, img, mask=blue_mask)
@@ -68,14 +72,34 @@ def color_detector(img):
             center_red = np.array([(x + w/2), (y + h/2)])
             img = cv2.rectangle(img, (x, y),
                                         (x + w, y + h),
-                                        [0, 0, 255], 2)
-            # cv2.putText(img, "Red", (x, y),
-            #                 cv2.FONT_HERSHEY_SIMPLEX, 1.0,
-            #                 (0, 0, 255))
+                                        [0, 255, 255], 2)
+            cv2.putText(img, "Red", (x, y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                            (0, 0, 255))
         else:
             center_red = np.array([])
     else:
         center_red = np.array([])
+
+    # Creating contour to track YELLOW color
+    contours_yellow, hierarchy = get_contour_by_mask(yellow_mask)
+    if len(contours_yellow) != 0:
+        cnt = sorted(contours_yellow, key=cv2.contourArea, reverse=True)[0]
+        area_yellow = cv2.contourArea(cnt)
+        x, y, w, h = cv2.boundingRect(cnt)
+        # print(f"x: {x}, y: {y}, w: {w}, h: {h}")
+        if area_yellow > 1500:
+            if y + h/2 < 180:
+                center_yellow = np.array([(x + w/2), (y + h/2)])
+                img = cv2.rectangle(img, (x, y),
+                                            (x + w, y + h),
+                                            [0, 255, 255], 2)
+            else:
+                center_yellow = np.array([])
+        else:
+            center_yellow = np.array([])
+    else:
+        center_yellow = np.array([])
 
     # Creating contour to track blue color
     contours_blue, hierarchy = get_contour_by_mask(blue_mask)
@@ -87,14 +111,13 @@ def color_detector(img):
         img = cv2.rectangle(img, (x, y),
                                     (x + w, y + h),
                                     (0, 0, 255), 2)
-        # print(f"x: {x}, y: {y}, w: {w}, h: {h}")
-        # cv2.putText(img, "Blue", (x, y),
-        #             cv2.FONT_HERSHEY_SIMPLEX,
-        #             1.0, (0, 255, 0))
+        cv2.putText(img, "Blue", (x, y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.0, (255, 0, 0))
     else:
         center_blue = np.array([])
     
-    return img, center_blue, center_red
+    return img, center_blue, center_red, center_yellow
 
 warnings.simplefilter('ignore', np.RankWarning) # Ignore rank warning
 np.seterr(divide='warn', invalid='warn')

@@ -48,15 +48,24 @@ class Example(object):
         self.bridge = CvBridge()
         self.obj_detection = None
         self.control = None
-        self.kp = 0.17 # 0.1234
+        self.kp = 0.77 # 0.1234
         self.pid_controller = PID.PID(self.kp, 0.001, 0.005)
         self.center_img = None
+        self.center_yellow = None # obstacle wall
+        self.isYellow = None # detect wall
         self.rate = rospy.Rate(50) # 100 Hz
         # for wall information
         self.is_obstacle_left = False
         self.is_obstacle_right = False
         self.is_obstacle_front = False
         self.angle_error = None
+        self.speed_x = 0.57
+        self.last_dir_command = None
+        self.obstacle_yellow_is_left = None
+        self.obstacle_yellow_is_right = None
+        self.is_red_left = None
+        self.is_red_right = None
+        self.speed_angle_cons = 0.5
 
         rospy.loginfo("[Example] loaded")
 
@@ -75,23 +84,40 @@ class Example(object):
         self.obj_detection = CameraProcessing.color_detector(self.current_image)
         center_blue = self.obj_detection[1]
         center_red = self.obj_detection[2] 
+        self.center_yellow  = self.obj_detection[3]
         
         self.center_img = [frame.shape[1]/2, frame.shape[0]/2]
-
+        # blue
         if len(center_blue) > 0:
             self.isBlue = True
             # print(f"Blue: {self.isBlue}")
             self.error_x = center_blue[0] - self.center_img[0]
             self.error_y = center_blue[1] - self.center_img[1]
-            self.angle_error = (self.error_x*1.57)/720
+            self.angle_error = (self.error_x*1.57)/(720)
         else:
             self.isBlue = False
 
+        # yellow
+        if len(self.center_yellow) != 0:
+            self.isYellow = True
+            # print(f"Yellow wall detected: x:{self.center_yellow[1]}, y: {self.center_yellow[0]}")
+            if self.center_yellow[0] < self.center_img[0]:
+                self.obstacle_yellow_is_right = False
+                self.obstacle_yellow_is_left = True
+            else:
+                self.obstacle_yellow_is_right = True
+                self.obstacle_yellow_is_left = False
+        else:
+            self.isYellow = False
+        # red
         if len(center_red) > 0:
             self.isRed = True
-            self.error_x = center_red[0] - self.center_img[0]
-            self.error_y = center_red[1] - self.center_img[1]
-            self.angle_error = (self.error_x*1.57)/720
+            if center_red[0]  < self.center_img[0]:
+                self.is_red_left = True
+                self.is_red_right = False
+            else:
+                self.is_red_right = True
+                self.is_red_left = False
         else:
             self.isRed = False
 
@@ -127,105 +153,97 @@ class Example(object):
         self.y_pos = msg.pose.pose.position.y
         self.z_pos = msg.pose.pose.position.z
 
-    
 
     def spin(self):
 
         t0 = rospy.get_time()
         # get infor params from images
         while not rospy.is_shutdown():
-
             t = rospy.get_time() - t0
-    
-            # khong phat hien thi chay thang
-            if self.isBlue == False and self.isRed == False:
-                if self.is_obstacle_front == False:
-                    self.command = go_straight(0.47)
-                elif self.is_obstacle_front == False and self.is_obstacle_left == False:
-                    self.command = go_straight(0.47)
-                elif self.is_obstacle_front == False and self.is_obstacle_right == False:
-                    self.command = go_straight(0.47)
-                self.cmd_vel.publish(self.command)
-                if self.is_obstacle_front == True:
-                    if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
-                        self.command = set_velocities(-0.2, 0.1, 0, 0, 0, 0.27)
-                    if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
-                        self.command = set_velocities(-0.2, 0.02, 0, 0, 0, -0.27)
-                    if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
-                        if self.sonar_data[1] > self.sonar_data[3]: # quay trai vi rang left > renge_right
-                            self.command = set_velocities(-0.2, 0.1, 0, 0, 0, 0.27)
-                        if self.sonar_data[1] < self.sonar_data[3]: # quay phai vi range right > range left
-                            self.command = set_velocities(-0.2, 0.1, 0, 0, 0, -0.34)
-                        else:   # both sides have obstacles
-                            self.command = set_velocities(-0.2, 0, 0, 0, 0, 0.23)
-                    if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
-                        self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
-                    self.cmd_vel.publish(self.command)
-
-            # when detect blue
-            elif self.isBlue == True:
-               
-                if self.is_obstacle_front == False:
-                    self.control = self.pid_controller.update(self.angle_error, t)
-                    self.command = set_velocities(0.37, 0, 0, 0, 0, -self.control)
-                    self.cmd_vel.publish(self.command)
+            '''
+                if thay tuong:
+                    if vang_ben_trai:
+                        if trai_co_vat_can va phai_co_vat_can:
+                            quay xe
+                        elif phai_co_vat_can:
+                            quay trai
+                        else:
+                            quay phai
+                    else:
+                        if trai_co_vat_can va phai_co_vat_can:
+                            quay xe
+                        elif trai_co_vat_can:
+                            quay phai
+                        else:
+                            quay trai
+                elif thay_red:
+                    if red_ben_trai:
+                        quay phai
+                    else:
+                        quay trai
+                elif thay blue:
+                    di toi blue        
+            '''
+            # thay tuong
+            if self.is_obstacle_front:
+                if self.obstacle_yellow_is_left == True:
+                    if self.is_obstacle_left ==True and self.is_obstacle_right == True:
+                        self.command = set_velocities(-self.speed_x, 0, 0, 0, 0, 0) # can dieu chinh
+                        # self.cmd_vel.publish(self.command) #
+                    elif self.is_obstacle_right == True: # TODO: turn left
+                        # print("co vat can ben phai")
+                        self.command = set_velocities(-0.15, 0, 0, 0, 0, self.speed_angle_cons)
+                        # self.cmd_vel.publish(self.command) #
+                    else: # turn right
+                        # print("Truong hop con lai")
+                        self.command = set_velocities(-0.15, 0, 0, 0, 0, -self.speed_angle_cons)
+                    self.cmd_vel.publish(self.command) #
+                    rospy.sleep(0.06)
                 else:
-                    self.command = go_straight(0.57)
-                self.cmd_vel.publish(self.command)
-
-                if self.is_obstacle_front == False and self.is_obstacle_left == False:
-                    self.command = go_straight(0.37)
-                elif self.is_obstacle_front == False and self.is_obstacle_right == False:
-                    self.command = go_straight(0.37)
-                self.cmd_vel.publish(self.command)
-                
-                if self.is_obstacle_front == True:
-                    self.command = set_velocities(-0.4, 0, 0, 0, 0, 0)
-                    self.cmd_vel.publish(self.command)
-                    rospy.sleep(0.02)
-                    if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
-                        self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
-                    if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
-                        self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
-                    if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
-                        if self.sonar_data[1] > self.sonar_data[3]: # quay trai vi rang left > renge_right
-                            self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
-                        if self.sonar_data[1] < self.sonar_data[3]: # quay phai vi range right > range left
-                            self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
-                        else:   # both sides have obstacles
-                            self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
-                    if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
-                        self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
-                    self.cmd_vel.publish(self.command)
+                    if self.is_obstacle_left and self.is_obstacle_right:
+                        self.command = set_velocities(-self.speed_x, 0, 0, 0, 0, 0) # can dieu chinh
+                    elif self.is_obstacle_left: # turn right
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, -self.speed_angle_cons)
+                    else:
+                        self.command = set_velocities(-0.1, 0, 0, 0, 0, self.speed_angle_cons)
+                    self.cmd_vel.publish(self.command) #
             elif self.isRed == True:
-                self.command = set_velocities(-1, 0, 0, 0, 0, 0.77)
+                if self.is_red_left == True: # turn right
+                    self.command = set_velocities(-0.2, 0, 0, 0, 0, -self.speed_angle_cons)
+                else: # turn left
+                    self.command = set_velocities(-0.2, 0, 0, 0, 0, self.speed_angle_cons)
                 self.cmd_vel.publish(self.command)
-                if self.error_x > 90:
-                        if self.is_obstacle_front == False:
-                             self.command = go_straight(0.47)
-                        elif self.is_obstacle_front == False and self.is_obstacle_left == False:
-                            self.command = go_straight(0.47)
-                        elif self.is_obstacle_front == False and self.is_obstacle_right == False:
-                            self.command = go_straight(0.47)
-                        self.cmd_vel.publish(self.command)
-                    
-                        if self.is_obstacle_front == True:
-                            if  self.is_obstacle_left == False and self.is_obstacle_right==True: # turn left
-                                self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
-                            if self.is_obstacle_left == True and self.is_obstacle_right == False: # turn right
-                                self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
-                            if self.is_obstacle_left == False and self.is_obstacle_right == False: # can turn or right => turn left
-                                if self.sonar_data[1] > self.sonar_data[3]: # quay trai vi rang left > renge_right
-                                    self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
-                                if self.sonar_data[1] < self.sonar_data[3]: # quay phai vi range right > range left
-                                    self.command = set_velocities(-0.1, 0, 0, 0, 0, -0.34)
-                                else:   # both sides have obstacles
-                                    self.command = set_velocities(-0.1, 0, 0, 0, 0, 0.34)
-                            if self.is_obstacle_left == True and self.is_obstacle_right==True: # canot turn left or right
-                                self.command = set_velocities(-0.08, 0, 0, 0, 0, 0.23)
-                            self.cmd_vel.publish(self.command)
+            elif self.isBlue == True:
+                self.control = self.pid_controller.update(self.angle_error, t)
+                self.command = set_velocities(self.speed_x, 0, 0, 0, 0, -self.control)
+                self.cmd_vel.publish(self.command)
 
             self.rate.sleep()
+            '''
+                if thay tuong:
+                    if vang_ben_trai:
+                        if trai_co_vat_can va phai_co_vat_can:
+                            quay xe
+                        elif phai_co_vat_can:
+                            quay trai
+                        else:
+                            quay phai
+                    else:
+                        if trai_co_vat_can va phai_co_vat_can:
+                            quay xe
+                        elif trai_co_vat_can:
+                            quay phai
+                        else:
+                            quay trai
+                elif thay_red:
+                    if red_ben_trai:
+                        quay phai
+                    else:
+                        quay trai
+                elif thay blue:
+                    di toi blue        
+            '''
+ 
 
 def main(args=None):
     rospy.init_node("example_node")
