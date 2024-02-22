@@ -53,7 +53,7 @@ class Example(object):
         self.center_img = None
         self.center_yellow = None # obstacle wall
         self.isYellow = None # detect wall
-        self.rate = rospy.Rate(50) # 100 Hz
+        self.rate = rospy.Rate(100) # 100 Hz
         # for wall information
         self.is_obstacle_left = False
         self.is_obstacle_right = False
@@ -208,8 +208,14 @@ class Example(object):
                         self.command = set_velocities(-0.1, 0, 0, 0, 0, self.speed_angle_cons)
                     self.cmd_vel.publish(self.command) #
             elif self.isRed == True:
-                if self.is_red_left == True: # turn right
-                    self.command = set_velocities(-0.2, 0, 0, 0, 0, -self.speed_angle_cons)
+                if  self.isYellow == True:
+                    if self.obstacle_yellow_is_left:
+                        self.command = set_velocities(-0.15, 0, 0, 0, 0, -0.37)
+                    else:
+                        self.command = set_velocities(-0.15, 0, 0, 0, 0, 0.37)
+                    self.cmd_vel.publish(self.command)
+                elif self.is_red_left == True: # turn right
+                    self.command = set_velocities(-0.15, 0, 0, 0, 0, -self.speed_angle_cons)
                 else: # turn left
                     self.command = set_velocities(-0.2, 0, 0, 0, 0, self.speed_angle_cons)
                 self.cmd_vel.publish(self.command)
@@ -217,6 +223,14 @@ class Example(object):
                 self.control = self.pid_controller.update(self.angle_error, t)
                 self.command = set_velocities(self.speed_x, 0, 0, 0, 0, -self.control)
                 self.cmd_vel.publish(self.command)
+                rospy.sleep(0.1)
+                if self.isYellow == True and self.isBlue == True:
+                    if self.obstacle_yellow_is_left:
+                        self.command = set_velocities(0.2, 0, 0, 0, 0, self.speed_angle_cons)
+                    else:
+                        self.command = set_velocities(0.2, 0, 0, 0, 0, -self.speed_angle_cons)
+                    self.cmd_vel.publish(self.command)
+                   
 
             self.rate.sleep()
             '''
@@ -254,5 +268,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-
-

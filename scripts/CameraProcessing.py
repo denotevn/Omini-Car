@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import cv2
 import numpy as np
 import warnings
@@ -89,7 +90,7 @@ def color_detector(img):
         x, y, w, h = cv2.boundingRect(cnt)
         # print(f"x: {x}, y: {y}, w: {w}, h: {h}")
         if area_yellow > 1500:
-            if y + h/2 < 180:
+            if h > 135:
                 center_yellow = np.array([(x + w/2), (y + h/2)])
                 img = cv2.rectangle(img, (x, y),
                                             (x + w, y + h),
@@ -137,4 +138,3 @@ if __name__ == "__main__":
 
     for img, x_error, yaw_error, _ in result:
         combo_img_avrage.append(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-
